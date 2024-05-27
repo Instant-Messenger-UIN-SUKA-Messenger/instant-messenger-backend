@@ -39,7 +39,7 @@ func ConsumeMessages(ctx context.Context) error {
 			}
 
 			// Send message to database
-			err := controllers.SaveMessageToDatabase(msg.Body)
+			_, err := controllers.SaveMessageToDatabase(msg.Body)
 			if err != nil {
 				fmt.Printf("Error sending message to database: %v\n", err)
 				// Handle the error appropriately
