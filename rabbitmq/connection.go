@@ -9,7 +9,7 @@ import (
 
 var rabbitMQ *amqp.Connection
 
-func ConnectToDatabase() error {
+func ConnectToRabbitMQ() error {
 	fmt.Println("Try to connect to RabbitMQ!")
 	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
 	if err != nil {
@@ -19,6 +19,9 @@ func ConnectToDatabase() error {
 	rabbitMQ = conn
 	fmt.Println("Successfully connected to RabbitMQ!")
 
+	ctx := context.Background() // Create a context for the connection
+
+	// Database
 	// Declare the exchange and queue after successful connection
 	err = DeclareExchange("DatabaseExchange", "direct") // Replace with desired exchange name and type
 	if err != nil {
@@ -32,22 +35,9 @@ func ConnectToDatabase() error {
 	BindQueueToExchange("DatabaseQueue", "DatabaseExchange", "database_key") // Replace with desired queue name, exchange name, and routing key
 
 	// Start consuming messages after connection and setup
-	ctx := context.Background() // Create a context
-	go ConsumeFromDatabase(ctx) // Start consumer in a separate goroutine
+	go ConsumeToDatabase(ctx) // Start consumer in a separate goroutine
 
-	return nil
-}
-
-func ConnectToClient() error {
-	fmt.Println("Try to connect to RabbitMQ!")
-	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
-	rabbitMQ = conn
-	fmt.Println("Successfully connected to RabbitMQ!")
-
+	// Client
 	// Declare the exchange and queue after successful connection
 	err = DeclareExchange("ClientExchange", "direct") // Replace with desired exchange name and type
 	if err != nil {
@@ -61,8 +51,7 @@ func ConnectToClient() error {
 	BindQueueToExchange("ClientQueue", "ClientExchange", "client_key") // Replace with desired queue name, exchange name, and routing key
 
 	// Start consuming messages after connection and setup
-	ctx := context.Background() // Create a context
-	go ConsumeFromClient(ctx)   // Start consumer in a separate goroutine
+	go ConsumeToClient(ctx)   // Start consumer in a separate goroutine
 
 	return nil
 }

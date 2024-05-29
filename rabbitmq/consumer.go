@@ -6,7 +6,7 @@ import (
 	"instant-messenger-backend/controllers"
 )
 
-func ConsumeFromDatabase(ctx context.Context) error {
+func ConsumeToDatabase(ctx context.Context) error {
 	ch, err := rabbitMQ.Channel()
 	if err != nil {
 		return err
@@ -38,10 +38,14 @@ func ConsumeFromDatabase(ctx context.Context) error {
 				break
 			}
 
-			// Send message to database
-			_, err := controllers.SaveMessageToDatabase(msg.Body)
-			if err != nil {
-				fmt.Printf("Error sending message to database: %v\n", err)
+			messageJson := msg.Body
+
+			if success, err := controllers.SaveMessageToDatabase(messageJson); success {
+				fmt.Println("Message saved to database successfully!")
+				// After saving the message to the database, publish it to the client queue
+				PublishToClient(messageJson)
+			} else if err != nil {
+				fmt.Printf("Error saving message to database: %v\n", err)
 				// Handle the error appropriately
 			}
 
@@ -52,7 +56,7 @@ func ConsumeFromDatabase(ctx context.Context) error {
 	}
 }
 
-func ConsumeFromClient(ctx context.Context) error {
+func ConsumeToClient(ctx context.Context) error {
 	ch, err := rabbitMQ.Channel()
 	if err != nil {
 		return err
@@ -84,12 +88,11 @@ func ConsumeFromClient(ctx context.Context) error {
 				break
 			}
 
-			// Send message to database
-			_, err := controllers.SaveMessageToDatabase(msg.Body)
-			if err != nil {
-				fmt.Printf("Error sending message to database: %v\n", err)
-				// Handle the error appropriately
-			}
+			// Cek data message
+			fmt.Printf("message sudah berhasil diterima di consumeToClient\n")
+			fmt.Print(string(msg.Body))
+
+			// Selanjutnya tinggal passing messagenya ke socket.io untuk dikirimkan ke client
 
 		case <-ctx.Done():
 			// Context canceled, stop consuming

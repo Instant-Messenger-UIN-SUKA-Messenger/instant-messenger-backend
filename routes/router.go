@@ -6,5 +6,5 @@ import (
 )
 
 func SetupRouter(r *gin.Engine) {
-  r.POST("/messages", rabbitmq.PublishMessage)
+  r.POST("/messages", rabbitmq.PublishToDatabase)
 }

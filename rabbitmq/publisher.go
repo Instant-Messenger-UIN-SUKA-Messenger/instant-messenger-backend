@@ -56,27 +56,12 @@ func PublishToDatabase(c *gin.Context) {
 	// No return statement needed, as the function now doesn't return anything
 }
 
-func PublishToClient(c *gin.Context) {
-	// Get the request body and convert it to message
-	var message models.Message
-	if err := c.BindJSON(&message); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	// Convert the message to JSON
-	messageJSON, err := json.Marshal(message)
-	if err != nil {
-		fmt.Printf("Error marshalling message to JSON: %v\n", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
-		return
-	}
-
+func PublishToClient(messageJSON []byte) {
 	// Publish message to the exchange
 	ch, err := rabbitMQ.Channel()
 	if err != nil {
 		fmt.Printf("Error getting RabbitMQ channel: %v\n", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		// c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 	defer ch.Close()
@@ -93,7 +78,7 @@ func PublishToClient(c *gin.Context) {
 	)
 	if err != nil {
 		fmt.Printf("Error publishing message to RabbitMQ: %v\n", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		// c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
