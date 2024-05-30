@@ -17,7 +17,7 @@ func main() {
 	websocket.ConnectSockedIO()
 	routes.SetupRouter(r)
 	websocket.ConnectSockedIO()
-	r.Run(":8000")
+	r.Run("localhost:5000")
 
 	// // Start WebSocket server
 	// go websocket.StartWS()
