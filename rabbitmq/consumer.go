@@ -77,7 +77,7 @@ func ConsumeToClient(ctx context.Context) error {
 		return err
 	}
 
-	fmt.Printf("DatabaseConsumer successfully Running!\n")
+	fmt.Printf("ClientConsumer successfully Running!\n")
 
 	// Process messages in a loop
 	for {

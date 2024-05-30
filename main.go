@@ -4,6 +4,7 @@ import (
 	"instant-messenger-backend/database"
 	"instant-messenger-backend/rabbitmq"
 	"instant-messenger-backend/routes"
+	"instant-messenger-backend/websocket"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,8 +14,10 @@ func main() {
 	r := gin.New()
 	rabbitmq.ConnectToRabbitMQ()
 	database.ConnectDB()
+	websocket.ConnectSockedIO()
 	routes.SetupRouter(r)
-	r.Run("localhost:5000")
+	websocket.ConnectSockedIO()
+	r.Run(":8000")
 
 	// // Start WebSocket server
 	// go websocket.StartWS()
