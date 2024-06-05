@@ -7,9 +7,11 @@ import (
 )
 
 type Chat struct {
-	ID           primitive.ObjectID   `bson:"_id" json:"_id"`       					// Unique chat ID
-	Participants []primitive.ObjectID `bson:"participants" json:"participants"`        	// Array of user IDs participating in the chat
-	ChatType     string               `bson:"chatType" json:"chatType"`            		// Type of chat (e.g., "private", "group")
-	Name         string               `bson:"name" json:"name"`      					// Chat name (optional for group chats)
-	CreatedAt    time.Time            `bson:"createdAt" json:"createdAt"` 				// Timestamp of chat creation
+	ID           		primitive.ObjectID   `bson:"_id" json:"_id"`       						// Unique chat ID
+	ChatID				string				 `bson:"chatId" json:"chatId"`
+	Participants 		[]string 			 `bson:"participants" json:"participants"`        	// Array of user IDs participating in the chat
+	ChatType     		string               `bson:"chatType" json:"chatType"`            		// Type of chat (e.g., "private", "group")
+	Name         		string               `bson:"name" json:"name"`      					// Chat name (optional for group chats)
+	LastMessage	 		string				 `bson:"lastMessage" json:"lastMessage"`
+	LastMessageTime    	time.Time            `bson:"lastMessageTime" json:"lastMessageTime"` 	// Timestamp of chat creation
 }

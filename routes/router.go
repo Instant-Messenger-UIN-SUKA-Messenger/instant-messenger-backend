@@ -1,12 +1,16 @@
 package routes
 
 import (
-  "github.com/gin-gonic/gin"
-  "instant-messenger-backend/rabbitmq"
+	"instant-messenger-backend/controllers"
+	"instant-messenger-backend/rabbitmq"
+
+	"github.com/gin-gonic/gin"
 )
 
 func SetupRouter(r *gin.Engine) {
   r.POST("/messages", rabbitmq.PublishToDatabase)
+  r.POST("/chatList", controllers.GetChatList)
+  r.POST("/chatDetail", controllers.GetChatDetail)
 
   r.GET("/", func(c *gin.Context) {
     c.JSON(200, gin.H{
