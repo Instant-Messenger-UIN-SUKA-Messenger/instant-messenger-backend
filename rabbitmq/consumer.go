@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"instant-messenger-backend/controllers"
+	"instant-messenger-backend/websocket"
 )
 
 func ConsumeToDatabase(ctx context.Context) error {
@@ -88,9 +89,14 @@ func ConsumeToClient(ctx context.Context) error {
 				break
 			}
 
-			// Cek data message
-			fmt.Printf("message sudah berhasil diterima di consumeToClient\n")
-			fmt.Print(string(msg.Body))
+			messageJson := msg.Body
+
+			if err := websocket.SendChatToClient(messageJson); err == nil {
+				fmt.Printf("message sudah berhasil diterima di consumeToClient\n")
+			} else {
+				fmt.Printf("Error sending message to client: %v\n", err)
+				// Handle the error appropriately
+			}
 
 			// Selanjutnya tinggal passing messagenya ke socket.io untuk dikirimkan ke client
 
