@@ -54,6 +54,12 @@ func PublishToDatabase(c *gin.Context) {
 
 	fmt.Printf("Message '%s' published successfully!\n", string(messageJSON))
 	// No return statement needed, as the function now doesn't return anything
+
+	c.JSON(http.StatusOK, gin.H{
+        "error":    false,
+        "messages": "Message send successfully, try to saving to database",
+		"status": "pending",
+    })
 }
 
 func PublishToClient(messageJSON []byte) {
