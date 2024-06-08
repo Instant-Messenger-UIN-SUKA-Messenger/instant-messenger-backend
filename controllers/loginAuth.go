@@ -66,15 +66,8 @@ func LoginAuth(c *gin.Context) {
 		return
 	}
 
-	userData := map[string]interface{}{
-		"id":       user.ID.Hex(),
-		"email":    user.Email,
-		"name":     user.Name,
-		"chatList": user.ChatList,
-	}
-
 	c.JSON(http.StatusOK, gin.H{
 		"error": false,
-		"data":  userData,
+		"data":  user,
 	})
 }
