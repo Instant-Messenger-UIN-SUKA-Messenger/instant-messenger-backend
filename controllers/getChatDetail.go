@@ -10,30 +10,27 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 var messageCollections *mongo.Collection = database.GetCollection(database.DB, "messages")
 
 func GetChatDetail(c *gin.Context) {
-	// Get chatId from body request
-	var chat models.Chat
-	var chatId string
-	if err := c.BindJSON(&chat); err != nil {
+	// Get chatId from URL parameter
+	chatId := c.Query("chatId")
+
+	if chatId == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": true, 
-			"message": "Invalid request body",
+			"error":   true,
+			"message": "Missing required parameter: chatId",
 		})
 		return
 	}
-	chatId = chat.ChatID
+
 	log.Printf("Extracted chatId: %s\n", chatId)
 
 	// Get All message with chatId matches And Sorting Asc Based SentAt field
 	var messageList []models.Message
-	findOptions := options.Find()
-	findOptions.SetSort(bson.M{"SentAt": 1})
-	curMessage, err := messageCollections.Find(context.TODO(), bson.M{"chatId": chatId}, findOptions)
+	curMessage, err := messageCollections.Find(context.TODO(), bson.M{"chatId": chatId})
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -44,17 +41,23 @@ func GetChatDetail(c *gin.Context) {
 	}
 
 	defer curMessage.Close(context.TODO())
-	for curMessage.Next(context.TODO()) {
-		var message models.Message
-		err := curMessage.Decode(&message)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error":   true,
-				"message": err.Error(),
-			})
-			return
-		}
-		messageList = append(messageList, message)
+
+	// Check for empty results
+	if !curMessage.Next(context.TODO()) {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error":   true,
+			"message": "No chat found with chatId: " + chatId,
+		})
+		return
+	}
+
+	// Use curMessage.All to decode all documents at once
+	if err := curMessage.All(context.TODO(), &messageList); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   true,
+			"message": err.Error(),
+		})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{

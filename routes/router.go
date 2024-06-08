@@ -9,8 +9,8 @@ import (
 
 func SetupRouter(r *gin.Engine) {
 	r.POST("/messages", rabbitmq.PublishToDatabase)
-	r.POST("/chatList", controllers.GetChatList)
-	r.POST("/chatDetail", controllers.GetChatDetail)
+	r.GET("/chatList", controllers.GetChatList)
+	r.GET("/chatDetail", controllers.GetChatDetail)
 	r.POST("/login", controllers.LoginAuth)
 
 	r.GET("/", func(c *gin.Context) {
@@ -18,5 +18,4 @@ func SetupRouter(r *gin.Engine) {
 			"message": "Hello, world! Connect to Instant Messenger App!",
 		})
 	})
-
 }

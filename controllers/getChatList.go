@@ -16,48 +16,44 @@ var userCollections *mongo.Collection = database.GetCollection(database.DB, "use
 var chatCollections *mongo.Collection = database.GetCollection(database.DB, "chats")
 
 func GetChatList(c *gin.Context) {
-	// Get data chat list based on nim from user collection
-	var user models.User
-	var nim string
-	if err := c.BindJSON(&user); err != nil {
+	// Get nim from URL parameter
+	nim := c.Query("nim")
+	if nim == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   true,
-			"message": "Invalid request body",
+			"message": "Missing required parameter: nim",
 		})
 		return
 	}
-	nim = user.NIM
+
 	log.Printf("Extracted nim: %s\n", nim)
 
-	var chatList []string
-
-	curUser, err := userCollections.Find(context.TODO(), bson.M{"nim": nim})
-
+	// Check if user with nim exists
+	var user models.User
+	err := userCollections.FindOne(context.TODO(), bson.M{"nim": nim}).Decode(&user)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   true,
-			"message": err.Error(),
-		})
-		return
-	}
-
-	defer curUser.Close(context.TODO())
-	for curUser.Next(context.TODO()) {
-		var user models.User
-		err := curUser.Decode(&user)
-		if err != nil {
+		// Handle error based on the error type
+		if err == mongo.ErrNoDocuments {
+			// User not found, return error response
+			c.JSON(http.StatusNotFound, gin.H{
+				"error":   true,
+				"message": "User not found with nim: " + nim,
+			})
+			return
+		} else {
+			// Other error, log and return internal server error
+			log.Printf("Error finding user with nim %s: %v\n", nim, err)
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error":   true,
-				"message": err.Error(),
+				"message": "Internal server error",
 			})
 			return
 		}
-		chatList = user.ChatList
 	}
 
 	// Get data chat information based on chatList from chat collection
 	var chats []models.Chat
-	for _, chatId := range chatList {
+	for _, chatId := range user.ChatList {
 		// Find chat information based on chatID
 		curChat, err := chatCollections.Find(context.TODO(), bson.M{"chatId": chatId})
 		if err != nil {
