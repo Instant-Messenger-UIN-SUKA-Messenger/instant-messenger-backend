@@ -11,158 +11,232 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var roomID string
-var server *Server
+// type MessageData struct {
+// 	ID      string `json:"id"`
+// 	Message string `json:"message"`
+// }
 
-type ChatRoom struct {
-	participants map[*websocket.Conn]struct{}
-	roomID       string
-	roomMu       sync.Mutex
+type InfoConnection struct {
+	ID   string `json:"id"`
+	Addr string `json:"address"`
+}
+
+type ClientMessage struct {
+	DestinationID string `json:"destination_id"`
+	Content       string `json:"content"`
 }
 
 type Server struct {
-	rooms    map[string]*ChatRoom
-	roomsMu  sync.Mutex
+	conns    map[string][]*websocket.Conn // Map untuk menyimpan koneksi berdasarkan ID pengguna
+	connsMu  sync.Mutex
+	nextID   int
 	upgrader websocket.Upgrader
 }
 
 func NewServer() *Server {
 	return &Server{
-		rooms:    make(map[string]*ChatRoom),
+		conns:    make(map[string][]*websocket.Conn), // Ubah inisialisasi map ini
+		nextID:   1,
 		upgrader: websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }},
 	}
 }
 
-// GetServerInstance returns the current server instance (if initialized)
-func GetServerInstance() *Server {
-	return server
+func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
+
+	conn, err := s.upgrader.Upgrade(w, r, nil)
+
+	if err != nil {
+
+		log.Println(err)
+
+		return
+
+	}
+
+	defer conn.Close()
+
+	// Baca pesan pertama dari klien untuk mendapatkan ID pengguna
+
+	_, msg, err := conn.ReadMessage()
+
+	if err != nil {
+
+		log.Println("Error reading user ID:", err)
+
+		return
+
+	}
+
+	var userID struct {
+		ID string `json:"id"`
+	}
+
+	if err := json.Unmarshal(msg, &userID); err != nil {
+
+		log.Println("Error decoding user ID:", err)
+
+		return
+
+	}
+
+	// Tambahkan koneksi ke dalam map conns dengan ID pengguna yang unik
+
+	s.connsMu.Lock()
+
+	connID := fmt.Sprintf("%s-%d", userID.ID, s.nextID)
+
+	s.nextID++
+
+	if _, exists := s.conns[userID.ID]; !exists {
+
+		s.conns[userID.ID] = make([]*websocket.Conn, 0)
+
+	}
+
+	s.conns[userID.ID] = append(s.conns[userID.ID], conn)
+
+	s.connsMu.Unlock()
+
+	// Kirim ID koneksi ke klien
+
+	conn.WriteMessage(websocket.TextMessage, []byte(connID))
+
+	for {
+
+		_, msg, err := conn.ReadMessage()
+
+		if err != nil {
+
+			log.Println(err)
+
+			// Hapus koneksi dari map saat koneksi tertutup atau ada error
+
+			s.connsMu.Lock()
+
+			for i, c := range s.conns[userID.ID] {
+
+				if c == conn {
+
+					s.conns[userID.ID] = append(s.conns[userID.ID][:i], s.conns[userID.ID][i+1:]...)
+
+					break
+
+				}
+
+			}
+
+			if len(s.conns[userID.ID]) == 0 {
+
+				delete(s.conns, userID.ID)
+
+			}
+
+			s.connsMu.Unlock()
+
+			return
+
+		}
+
+		var clientMsg models.Message
+
+		if err := json.Unmarshal(msg, &clientMsg); err != nil {
+
+			log.Println("Error decoding message:", err)
+
+			continue
+
+		}
+
+		// Kirim pesan hanya ke koneksi tujuan
+
+		s.connsMu.Lock()
+
+		found := false
+
+		for _, destConn := range s.conns[clientMsg.ChatID] {
+
+			destConn.WriteMessage(websocket.TextMessage, []byte(clientMsg.Content))
+
+			// Kirim respons ke klien bahwa pesan berhasil dikirim
+
+			conn.WriteMessage(websocket.TextMessage, []byte("Pesan berhasil dikirim"))
+
+			found = true
+
+		}
+
+		s.connsMu.Unlock()
+
+		if !found {
+
+			conn.WriteMessage(websocket.TextMessage, []byte("orangnya tidak ada"))
+
+		}
+
+	}
+
 }
 
-func (s *Server) createRoom(roomID string) {
-	s.roomsMu.Lock()
-	defer s.roomsMu.Unlock()
+func (s *Server) getConnectionInfo() []InfoConnection {
+	s.connsMu.Lock()
+	defer s.connsMu.Unlock()
 
-	s.rooms[roomID] = &ChatRoom{
-		participants: make(map[*websocket.Conn]struct{}),
-		roomID:       roomID,
-	}
-}
+	var connections []InfoConnection
 
-func (s *Server) joinRoom(roomID string, conn *websocket.Conn) error {
-	s.roomsMu.Lock()
-	defer s.roomsMu.Unlock()
-
-	room, ok := s.rooms[roomID]
-	if !ok {
-		return fmt.Errorf("room %s not found", roomID)
-	}
-
-	room.roomMu.Lock()
-	defer room.roomMu.Unlock()
-
-	if len(room.participants) >= 2 {
-		return fmt.Errorf("room %s is full", roomID)
-	}
-
-	room.participants[conn] = struct{}{}
-
-	return nil
-}
-
-func (s *Server) broadcastRoom(roomID string, msg []byte) error {
-	fmt.Println("Log 1 - Broadcasting message to room", roomID)
-	s.roomsMu.Lock()
-	defer s.roomsMu.Unlock()
-
-	room, ok := s.rooms[roomID]
-	if !ok {
-		return fmt.Errorf("room %s not found", roomID)
-	}
-
-	fmt.Println("Log 2 - Broadcasting message to room", roomID)
-
-	fmt.Println("Broadcasting Message", string(msg))
-
-	room.roomMu.Lock()
-	defer room.roomMu.Unlock()
-
-	for participant := range room.participants {
-		if err := participant.WriteMessage(websocket.TextMessage, msg); err != nil {
-			return err
+	for connID, connList := range s.conns {
+		for _, conn := range connList {
+			info := InfoConnection{
+				ID:   connID,
+				Addr: conn.RemoteAddr().String(),
+			}
+			connections = append(connections, info)
 		}
 	}
 
-	return nil
+	return connections
 }
 
-func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
-	conn, err := s.upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	defer conn.Close()
+func connectionsHandler(w http.ResponseWriter, _ *http.Request, server *Server) {
+	connections := server.getConnectionInfo()
 
-	roomID = r.URL.Query().Get("room")
-	if roomID == "" {
-		roomID = "default"
-	}
+	// Mengembalikan informasi koneksi dalam format JSON
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(connections)
+}
 
-	if _, ok := s.rooms[roomID]; !ok {
-		s.createRoom(roomID)
-	}
+func (s *Server) SendChatToClient(message []byte) (bool, error) {
+	log.Printf("Received a message: %s", message)
 
-	if err := s.joinRoom(roomID, conn); err != nil {
-		log.Println(err)
-		return
+	var clientMsg models.Message
+	if err := json.Unmarshal(message, &clientMsg); err != nil {
+		log.Println("Error decoding message:", err)
+		// d.Nack(false, true) // Nack message if decoding fails
+		// continue
 	}
 
-	fmt.Println("a user connected")
+	s.connsMu.Lock()
+	for _, destConn := range s.conns[clientMsg.ChatID] {
+		destConn.WriteMessage(websocket.TextMessage, []byte(clientMsg.Content))
+	}
+	s.connsMu.Unlock()
 
-	// for {
-	// 	_, msg, err := conn.ReadMessage()
-	// 	if err != nil {
-	// 		log.Println(err)
-	// 		s.roomsMu.Lock()
-	// 		delete(s.rooms[roomID].participants, conn)
-	// 		s.roomsMu.Unlock()
-	// 		return
-	// 	}
-
-	// 	if err := s.broadcastRoom(roomID, msg); err != nil {
-	// 		log.Println("Error broadcasting message:", err)
-	// 	}
+	// // Konfirmasi bahwa pesan telah berhasil di-handle
+	// if err := d.Ack(false); err != nil {
+	// 	log.Printf("Error acknowledging message: %s", err)
 	// }
-}
-
-// SendChatToClient broadcasts the message to the specified room
-// This function can be called without needing a server instance
-func SendChatToClient(messageJSON []byte) error {
-    // Decode JSON message
-    var message models.Message
-    err := json.Unmarshal(messageJSON, &message)
-    if err != nil {
-        return fmt.Errorf("error unmarshalling message: %w", err)
-    }
-
-    if server == nil {
-        return fmt.Errorf("server is not initialized")
-    }
-
-    // Convert message.Content to a byte slice
-    messageContent := []byte(message.Content)
-
-    // Broadcast the message using websocket.TextMessage
-    server.broadcastRoom(roomID, messageContent)
-
-    return nil
+	return true, nil
 }
 
 func InitGorillaWebsocket() {
-	server = NewServer()
+	server := NewServer()
+
+	// go server.consume()
 
 	http.HandleFunc("/ws", server.handleWebSocket)
+	http.HandleFunc("/connections", func(w http.ResponseWriter, r *http.Request) {
+		connectionsHandler(w, r, server)
+	})
 
-	fmt.Println("Gorilla Websocket Server is listening on port 8181")
+	fmt.Println("Server is listening on port 8181")
 	log.Fatal(http.ListenAndServe(":8181", nil))
 }

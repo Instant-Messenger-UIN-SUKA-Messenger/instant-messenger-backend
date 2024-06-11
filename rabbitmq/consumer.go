@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"instant-messenger-backend/controllers"
 	"instant-messenger-backend/websocket"
+	"log"
 )
 
 func ConsumeToDatabase(ctx context.Context) error {
@@ -80,29 +81,47 @@ func ConsumeToClient(ctx context.Context) error {
 
 	fmt.Printf("ClientConsumer successfully Running!\n")
 
-	// Process messages in a loop
-	for {
-		select {
-		case msg, ok := <-msgs:
-			if !ok {
-				// Channel closed
-				break
-			}
+	var forever chan struct{}
 
-			messageJson := msg.Body
-
-			if err := websocket.SendChatToClient(messageJson); err == nil {
+	go func() {
+		for d := range msgs {
+			if success, err := websocket.NewServer().SendChatToClient(d.Body); success {
 				fmt.Printf("message sudah berhasil diterima di consumeToClient\n")
 			} else {
 				fmt.Printf("Error sending message to client: %v\n", err)
 				// Handle the error appropriately
 			}
-
-			// Selanjutnya tinggal passing messagenya ke socket.io untuk dikirimkan ke client
-
-		case <-ctx.Done():
-			// Context canceled, stop consuming
-			return nil
 		}
-	}
+	}()
+
+	log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
+	<-forever
+
+	return nil
+
+	// // Process messages in a loop
+	// for {
+	// 	select {
+	// 	case msg, ok := <-msgs:
+	// 		if !ok {
+	// 			// Channel closed
+	// 			break
+	// 		}
+
+	// 		messageJson := msg.Body
+
+	// 		if success, err := websocket.NewServer().SendChatToClient(messageJson); success {
+	// 			fmt.Printf("message sudah berhasil diterima di consumeToClient\n")
+	// 		} else {
+	// 			fmt.Printf("Error sending message to client: %v\n", err)
+	// 			// Handle the error appropriately
+	// 		}
+
+	// 		// Selanjutnya tinggal passing messagenya ke socket.io untuk dikirimkan ke client
+
+	// 	case <-ctx.Done():
+	// 		// Context canceled, stop consuming
+	// 		return nil
+	// 	}
+	// }
 }

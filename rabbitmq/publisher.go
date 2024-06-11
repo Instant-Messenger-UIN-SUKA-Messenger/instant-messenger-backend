@@ -52,7 +52,7 @@ func PublishToDatabase(c *gin.Context) {
 		return
 	}
 
-	fmt.Printf("Message '%s' published successfully!\n", string(messageJSON))
+	// fmt.Printf("Message '%s' published successfully!\n", string(messageJSON))
 	// No return statement needed, as the function now doesn't return anything
 
 	c.JSON(http.StatusOK, gin.H{
@@ -88,6 +88,6 @@ func PublishToClient(messageJSON []byte) {
 		return
 	}
 
-	fmt.Printf("Message '%s' published successfully!\n", string(messageJSON))
+	// fmt.Printf("Message '%s' published successfully!\n", string(messageJSON))
 	// No return statement needed, as the function now doesn't return anything
 }

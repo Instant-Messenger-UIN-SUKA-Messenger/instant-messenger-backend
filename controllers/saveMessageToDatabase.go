@@ -48,7 +48,7 @@ func SaveMessageToDatabase(messageJSON []byte) (bool, error) {
 
 	// Check if any document was updated
 	if updateResult.MatchedCount == 0 {
-		log.Println("No chat document updated with chatId: 12345")
+		log.Println("No chat document updated with chatId: ", message.ChatID)
 	} else {
 		log.Println("Chat updated successfully")
 	}
