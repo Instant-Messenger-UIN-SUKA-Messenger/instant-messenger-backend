@@ -85,7 +85,7 @@ func ConsumeToClient(ctx context.Context) error {
 
 	go func() {
 		for d := range msgs {
-			if success, err := websocket.NewServer().SendChatToClient(d.Body); success {
+			if success, err := websocket.ClientServer.SendChatToClient(d.Body); success {
 				fmt.Printf("message sudah berhasil diterima di consumeToClient\n")
 			} else {
 				fmt.Printf("Error sending message to client: %v\n", err)
@@ -99,29 +99,4 @@ func ConsumeToClient(ctx context.Context) error {
 
 	return nil
 
-	// // Process messages in a loop
-	// for {
-	// 	select {
-	// 	case msg, ok := <-msgs:
-	// 		if !ok {
-	// 			// Channel closed
-	// 			break
-	// 		}
-
-	// 		messageJson := msg.Body
-
-	// 		if success, err := websocket.NewServer().SendChatToClient(messageJson); success {
-	// 			fmt.Printf("message sudah berhasil diterima di consumeToClient\n")
-	// 		} else {
-	// 			fmt.Printf("Error sending message to client: %v\n", err)
-	// 			// Handle the error appropriately
-	// 		}
-
-	// 		// Selanjutnya tinggal passing messagenya ke socket.io untuk dikirimkan ke client
-
-	// 	case <-ctx.Done():
-	// 		// Context canceled, stop consuming
-	// 		return nil
-	// 	}
-	// }
 }
