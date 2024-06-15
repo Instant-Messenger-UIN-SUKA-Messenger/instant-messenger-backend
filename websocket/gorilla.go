@@ -11,19 +11,9 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// type MessageData struct {
-// 	ID      string `json:"id"`
-// 	Message string `json:"message"`
-// }
-
 type InfoConnection struct {
 	ID   string `json:"id"`
 	Addr string `json:"address"`
-}
-
-type ClientMessage struct {
-	DestinationID string `json:"destination_id"`
-	Content       string `json:"content"`
 }
 
 type Server struct {
@@ -220,21 +210,20 @@ func (s *Server) SendChatToClient(message []byte) (bool, error) {
 	}
 	s.connsMu.Unlock()
 
-	// // Konfirmasi bahwa pesan telah berhasil di-handle
-	// if err := d.Ack(false); err != nil {
-	// 	log.Printf("Error acknowledging message: %s", err)
-	// }
 	return true, nil
 }
 
+var ClientServer *Server
+
 func InitGorillaWebsocket() {
-	server := NewServer()
+
+	ClientServer = NewServer()
 
 	// go server.consume()
 
-	http.HandleFunc("/ws", server.handleWebSocket)
+	http.HandleFunc("/ws", ClientServer.handleWebSocket)
 	http.HandleFunc("/connections", func(w http.ResponseWriter, r *http.Request) {
-		connectionsHandler(w, r, server)
+		connectionsHandler(w, r, ClientServer)
 	})
 
 	fmt.Println("Server is listening on port 8181")
