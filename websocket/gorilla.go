@@ -206,7 +206,7 @@ func (s *Server) SendChatToClient(message []byte) (bool, error) {
 
 	s.connsMu.Lock()
 	for _, destConn := range s.conns[clientMsg.ChatID] {
-		destConn.WriteMessage(websocket.TextMessage, []byte(clientMsg.Content))
+		destConn.WriteMessage(websocket.TextMessage, message)
 	}
 	s.connsMu.Unlock()
 
@@ -218,8 +218,6 @@ var ClientServer *Server
 func InitGorillaWebsocket() {
 
 	ClientServer = NewServer()
-
-	// go server.consume()
 
 	http.HandleFunc("/ws", ClientServer.handleWebSocket)
 	http.HandleFunc("/connections", func(w http.ResponseWriter, r *http.Request) {
