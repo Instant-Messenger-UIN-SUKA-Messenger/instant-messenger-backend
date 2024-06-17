@@ -8,7 +8,6 @@ import (
 	"github.com/streadway/amqp"
 )
 
-var rabbitMQ *amqp.Connection
 func ConnectToRabbitMQ() error {
 	fmt.Println("Try to connect to RabbitMQ!")
 	conn, err := amqp.Dial(configs.EnvRabbitMQURI())
@@ -17,6 +16,8 @@ func ConnectToRabbitMQ() error {
 		return err
 	}
 	rabbitMQ = conn
+	CreateRabbitMQChannel()
+
 	fmt.Println("Successfully connected to RabbitMQ!")
 
 	ctx := context.Background() // Create a context for the connection
@@ -53,5 +54,16 @@ func ConnectToRabbitMQ() error {
 	// Start consuming messages after connection and setup
 	go ConsumeToClient(ctx)   // Start consumer in a separate goroutine
 
+	return nil
+}
+
+func CreateRabbitMQChannel() (error) {
+	ch, err := rabbitMQ.Channel()
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	rabbitMQChannel = ch
+	fmt.Println("Successfully create RabbitMQ Channel!")
 	return nil
 }

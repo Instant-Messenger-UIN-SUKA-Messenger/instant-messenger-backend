@@ -5,13 +5,7 @@ import (
 )
 
 func BindQueueToExchange(queueName string, exchangeName string, routingKey string) error {
-	ch, err := rabbitMQ.Channel()
-	if err != nil {
-		return err
-	}
-	defer ch.Close()
-
-	err = ch.QueueBind(
+	err := rabbitMQChannel.QueueBind(
 			queueName,
 			routingKey,
 			exchangeName,

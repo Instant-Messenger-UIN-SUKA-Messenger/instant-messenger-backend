@@ -4,13 +4,7 @@ import "fmt"
 
 // DeclareExchange creates an exchange on the RabbitMQ server.
 func DeclareExchange(exchangeName string, exchangeType string) error {
-	ch, err := rabbitMQ.Channel()
-	if err != nil {
-		return err
-	}
-	defer ch.Close()
-
-	err = ch.ExchangeDeclare(
+	err := rabbitMQChannel.ExchangeDeclare(
 		exchangeName, // Name of the exchange
 		exchangeType, // Type of the exchange (e.g., "fanout", "direct", "topic", etc.)
 		true,         // Durable (survives server restarts)

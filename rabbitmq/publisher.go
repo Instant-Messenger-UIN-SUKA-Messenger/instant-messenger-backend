@@ -28,15 +28,7 @@ func PublishToDatabase(c *gin.Context) {
 	}
 
 	// Publish message to the exchange
-	ch, err := rabbitMQ.Channel()
-	if err != nil {
-		fmt.Printf("Error getting RabbitMQ channel: %v\n", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
-		return
-	}
-	defer ch.Close()
-
-	err = ch.Publish(
+	err = rabbitMQChannel.Publish(
 		"DatabaseExchange", // Exchange name
 		"database_key",     // Routing key (matches queue binding)
 		true,               // Mandatory (don't fail if no queue bound)
@@ -52,9 +44,6 @@ func PublishToDatabase(c *gin.Context) {
 		return
 	}
 
-	// fmt.Printf("Message '%s' published successfully!\n", string(messageJSON))
-	// No return statement needed, as the function now doesn't return anything
-
 	c.JSON(http.StatusOK, gin.H{
         "error":    false,
         "messages": "Message send successfully, try to saving to database",
@@ -63,16 +52,7 @@ func PublishToDatabase(c *gin.Context) {
 }
 
 func PublishToClient(messageJSON []byte) {
-	// Publish message to the exchange
-	ch, err := rabbitMQ.Channel()
-	if err != nil {
-		fmt.Printf("Error getting RabbitMQ channel: %v\n", err)
-		// c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
-		return
-	}
-	defer ch.Close()
-
-	err = ch.Publish(
+	err := rabbitMQChannel.Publish(
 		"ClientExchange", // Exchange name
 		"client_key",     // Routing key (matches queue binding)
 		true,             // Mandatory (don't fail if no queue bound)
@@ -87,7 +67,4 @@ func PublishToClient(messageJSON []byte) {
 		// c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
-
-	// fmt.Printf("Message '%s' published successfully!\n", string(messageJSON))
-	// No return statement needed, as the function now doesn't return anything
 }

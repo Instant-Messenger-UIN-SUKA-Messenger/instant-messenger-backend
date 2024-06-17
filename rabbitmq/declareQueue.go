@@ -4,13 +4,7 @@ import "fmt"
 
 // DeclareQueue creates a queue on the RabbitMQ server.
 func DeclareQueue(queueName string) error {
-	ch, err := rabbitMQ.Channel()
-	if err != nil {
-		return err
-	}
-	defer ch.Close()
-
-	q, err := ch.QueueDeclare(
+	q, err := rabbitMQChannel.QueueDeclare(
 		queueName, // Name of the queue
 		true,      // Durable (survives server restarts)
 		false,     // Auto-delete (deleted when no longer in use)

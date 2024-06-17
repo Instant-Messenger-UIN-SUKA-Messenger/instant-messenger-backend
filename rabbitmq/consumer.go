@@ -9,14 +9,8 @@ import (
 )
 
 func ConsumeToDatabase(ctx context.Context) error {
-	ch, err := rabbitMQ.Channel()
-	if err != nil {
-		return err
-	}
-	defer ch.Close()
-
 	// Declare the variables to receive the channel and error
-	msgs, err := ch.Consume(
+	msgs, err := rabbitMQChannel.Consume(
 		"DatabaseQueue",    // Queue name
 		"DatabaseConsumer", // Consumer tag (for identification)
 		true,               // Auto-ack (acknowledges messages automatically)
@@ -59,14 +53,8 @@ func ConsumeToDatabase(ctx context.Context) error {
 }
 
 func ConsumeToClient(ctx context.Context) error {
-	ch, err := rabbitMQ.Channel()
-	if err != nil {
-		return err
-	}
-	defer ch.Close()
-
 	// Declare the variables to receive the channel and error
-	msgs, err := ch.Consume(
+	msgs, err := rabbitMQChannel.Consume(
 		"ClientQueue",    // Queue name
 		"ClientConsumer", // Consumer tag (for identification)
 		true,             // Auto-ack (acknowledges messages automatically)
@@ -98,5 +86,4 @@ func ConsumeToClient(ctx context.Context) error {
 	<-forever
 
 	return nil
-
 }
