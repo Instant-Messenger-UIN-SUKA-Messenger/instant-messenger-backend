@@ -3,6 +3,7 @@ package rabbitmq
 import (
 	"context"
 	"fmt"
+	"instant-messenger-backend/configs"
 
 	"github.com/streadway/amqp"
 )
@@ -10,7 +11,7 @@ import (
 var rabbitMQ *amqp.Connection
 func ConnectToRabbitMQ() error {
 	fmt.Println("Try to connect to RabbitMQ!")
-	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
+	conn, err := amqp.Dial(configs.EnvRabbitMQURI())
 	if err != nil {
 		fmt.Println(err)
 		return err

@@ -14,3 +14,12 @@ func EnvMongoURI() string {
   
     return os.Getenv("MONGOURI")
 }
+
+func EnvRabbitMQURI() string {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	return os.Getenv("RABBITMQ_URI")
+}
