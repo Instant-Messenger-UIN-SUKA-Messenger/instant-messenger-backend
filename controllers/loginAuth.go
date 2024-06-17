@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"errors"
-	"instant-messenger-backend/database"
 	"instant-messenger-backend/models"
 	"log"
 	"net/http"
@@ -12,7 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-var usersCollections *mongo.Collection = database.GetCollection(database.DB, "users")
+
 
 func LoginAuth(c *gin.Context) {
 
@@ -40,7 +39,7 @@ func LoginAuth(c *gin.Context) {
 	var user models.User
 	filter := bson.M{"nim": loginData.NIM}
 
-	err := usersCollections.FindOne(c, filter).Decode(&user)
+	err := userCollections.FindOne(c, filter).Decode(&user)
 
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {

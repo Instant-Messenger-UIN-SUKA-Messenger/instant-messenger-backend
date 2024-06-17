@@ -8,10 +8,11 @@ import (
 )
 
 func SetupRouter(r *gin.Engine) {
-	r.POST("/messages", rabbitmq.PublishToDatabase)
+	r.POST("/login", controllers.LoginAuth)
 	r.GET("/chatList", controllers.GetChatList)
 	r.GET("/chatDetail", controllers.GetChatDetail)
-	r.POST("/login", controllers.LoginAuth)
+	r.GET("/participant", controllers.GetChatGroupParticipantData)
+	r.POST("/messages", rabbitmq.PublishToDatabase)
 
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(200, gin.H{

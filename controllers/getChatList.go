@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"context"
-	"instant-messenger-backend/database"
 	"instant-messenger-backend/models"
 	"log"
 	"net/http"
@@ -11,9 +10,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
-
-var userCollections *mongo.Collection = database.GetCollection(database.DB, "users")
-var chatCollections *mongo.Collection = database.GetCollection(database.DB, "chats")
 
 func GetChatList(c *gin.Context) {
 	// Get nim from URL parameter

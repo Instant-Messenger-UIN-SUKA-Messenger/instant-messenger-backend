@@ -2,17 +2,13 @@ package controllers
 
 import (
 	"context"
-	"instant-messenger-backend/database"
 	"instant-messenger-backend/models"
 	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 )
-
-var messageCollections *mongo.Collection = database.GetCollection(database.DB, "messages")
 
 func GetChatDetail(c *gin.Context) {
 	// Get chatId from URL parameter
