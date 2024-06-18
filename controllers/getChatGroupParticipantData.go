@@ -8,10 +8,37 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 func GetChatGroupParticipantData(c *gin.Context) {
-	participantsId := c.QueryArray("participantsId")
+	// Get chatId from URL parameter
+	chatId := c.Query("chatId")
+
+	var chat models.Chat
+	err := chatCollections.FindOne(context.TODO(), bson.M{"chatId": chatId}).Decode(&chat)
+	if err != nil {
+		// Handle error based on the error type
+		if err == mongo.ErrNoDocuments {
+			// Chat not found, return error response
+			c.JSON(http.StatusNotFound, gin.H{
+				"error":   true,
+				"message": "Chat not found with chatId: " + chatId,
+			})
+			return
+		} else {
+			// Other error, log and return internal server error
+			log.Printf("Error finding chat with chatId %s: %v\n", chatId, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":   true,
+				"message": "Internal server error",
+			})
+			return
+		}
+	}
+
+	// get participantsId from chat
+	participantsId := chat.Participants
 
 	if len(participantsId) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{

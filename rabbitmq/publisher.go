@@ -3,20 +3,57 @@ package rabbitmq
 import (
 	"encoding/json"
 	"fmt"
+	"mime/multipart"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/streadway/amqp"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"instant-messenger-backend/models"
+	"instant-messenger-backend/utils"
 )
+
+// MessageRaw is a struct that represents the raw message data received from the client
+// Attachments field is still multipart.FileHeader type
+type MessageRaw struct {
+    ID          primitive.ObjectID  		
+    ChatID      string              		
+    SenderID    string              		
+    Content     string              		
+    SentAt      time.Time           		
+    Attachments *multipart.FileHeader           
+}
 
 func PublishToDatabase(c *gin.Context) {
 	// Get the request body and convert it to message
-	var message models.Message
-	if err := c.BindJSON(&message); err != nil {
+	var messageRaw MessageRaw
+	if err := c.BindJSON(&messageRaw); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+	}
+
+	var path string
+	var err error
+	if messageRaw.Attachments != nil {
+		path, err = utils.UploadFile(messageRaw.ChatID, messageRaw.Attachments, c)
+		if err != nil {
+			fmt.Println("Error uploading file:", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+			return
+		}
+		fmt.Println("Attachments: ", path)
+	}
+
+	// Transform the raw message to a message
+	var message models.Message = models.Message{
+		ID:          messageRaw.ID,
+		ChatID:      messageRaw.ChatID,
+		SenderID:    messageRaw.SenderID,
+		Content:     messageRaw.Content,
+		SentAt:      messageRaw.SentAt,
+		Attachments: path,
 	}
 
 	// Convert the message to JSON

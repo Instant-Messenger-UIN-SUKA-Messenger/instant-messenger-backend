@@ -12,5 +12,5 @@ type Message struct {
     SenderID    string              `bson:"senderId" json:"senderId"`
     Content     string              `bson:"content" json:"content"`
     SentAt      time.Time           `bson:"sentAt" json:"sentAt"`
-    Attachments []string            `bson:"attachments" json:"attachments"`
+    Attachments string              `bson:"attachments" json:"attachments"`
 }
