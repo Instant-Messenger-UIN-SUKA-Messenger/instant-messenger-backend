@@ -3,6 +3,7 @@ package rabbitmq
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"time"
@@ -18,21 +19,23 @@ import (
 // MessageRaw is a struct that represents the raw message data received from the client
 // Attachments field is still multipart.FileHeader type
 type MessageRaw struct {
-    ID          primitive.ObjectID  		
-    ChatID      string              		
-    SenderID    string              		
-    Content     string              		
-    SentAt      time.Time           		
-    Attachments *multipart.FileHeader           
+	ID          primitive.ObjectID     		`form:"_id"`
+	ChatID      string              		`form:"chatId"`
+	SenderID    string              		`form:"senderId"`
+	Content     string              		`form:"content"`
+	SentAt      time.Time           		`form:"sentAt"`
+	Attachments *multipart.FileHeader       `form:"attachments"`    
 }
 
 func PublishToDatabase(c *gin.Context) {
 	// Get the request body and convert it to message
 	var messageRaw MessageRaw
-	if err := c.BindJSON(&messageRaw); err != nil {
+	if err := c.ShouldBind(&messageRaw); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	log.Printf("Received message: %+v\n", messageRaw)
 
 	var path string
 	var err error
