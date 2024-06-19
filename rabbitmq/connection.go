@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"instant-messenger-backend/configs"
 
-	"github.com/streadway/amqp"
+	"github.com/rabbitmq/amqp091-go"
 )
 
 func ConnectToRabbitMQ() error {
 	fmt.Println("Try to connect to RabbitMQ!")
-	conn, err := amqp.Dial(configs.EnvRabbitMQURI())
+	conn, err := amqp091.Dial(configs.EnvRabbitMQURI())
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -52,12 +52,12 @@ func ConnectToRabbitMQ() error {
 	BindQueueToExchange("ClientQueue", "ClientExchange", "client_key") // Replace with desired queue name, exchange name, and routing key
 
 	// Start consuming messages after connection and setup
-	go ConsumeToClient(ctx)   // Start consumer in a separate goroutine
+	go ConsumeToClient(ctx) // Start consumer in a separate goroutine
 
 	return nil
 }
 
-func CreateRabbitMQChannel() (error) {
+func CreateRabbitMQChannel() error {
 	ch, err := rabbitMQ.Channel()
 	if err != nil {
 		fmt.Println(err)

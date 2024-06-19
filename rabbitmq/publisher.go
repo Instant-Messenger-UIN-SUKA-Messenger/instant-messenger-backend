@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/streadway/amqp"
+	"github.com/rabbitmq/amqp091-go"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"instant-messenger-backend/models"
@@ -19,12 +19,12 @@ import (
 // MessageRaw is a struct that represents the raw message data received from the client
 // Attachments field is still multipart.FileHeader type
 type MessageRaw struct {
-	ID          primitive.ObjectID     		`form:"_id"`
-	ChatID      string              		`form:"chatId"`
-	SenderID    string              		`form:"senderId"`
-	Content     string              		`form:"content"`
-	SentAt      time.Time           		`form:"sentAt"`
-	Attachments *multipart.FileHeader       `form:"attachments"`    
+	ID          primitive.ObjectID    `form:"_id"`
+	ChatID      string                `form:"chatId"`
+	SenderID    string                `form:"senderId"`
+	Content     string                `form:"content"`
+	SentAt      time.Time             `form:"sentAt"`
+	Attachments *multipart.FileHeader `form:"attachments"`
 }
 
 func PublishToDatabase(c *gin.Context) {
@@ -73,7 +73,7 @@ func PublishToDatabase(c *gin.Context) {
 		"database_key",     // Routing key (matches queue binding)
 		true,               // Mandatory (don't fail if no queue bound)
 		false,              // Immediate (don't wait for ack)
-		amqp.Publishing{
+		amqp091.Publishing{
 			ContentType: "application/json",
 			Body:        messageJSON,
 		},
@@ -85,10 +85,10 @@ func PublishToDatabase(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-        "error":    false,
-        "messages": "Message send successfully, try to saving to database",
-		"status": "pending",
-    })
+		"error":    false,
+		"messages": "Message send successfully, try to saving to database",
+		"status":   "pending",
+	})
 }
 
 func PublishToClient(messageJSON []byte) {
@@ -97,7 +97,7 @@ func PublishToClient(messageJSON []byte) {
 		"client_key",     // Routing key (matches queue binding)
 		true,             // Mandatory (don't fail if no queue bound)
 		false,            // Immediate (don't wait for ack)
-		amqp.Publishing{
+		amqp091.Publishing{
 			ContentType: "application/json",
 			Body:        messageJSON,
 		},
