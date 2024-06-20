@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/rabbitmq/amqp091-go"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"instant-messenger-backend/models"
@@ -73,7 +73,7 @@ func PublishToDatabase(c *gin.Context) {
 		"database_key",     // Routing key (matches queue binding)
 		true,               // Mandatory (don't fail if no queue bound)
 		false,              // Immediate (don't wait for ack)
-		amqp091.Publishing{
+		amqp.Publishing{
 			ContentType: "application/json",
 			Body:        messageJSON,
 		},
@@ -97,7 +97,7 @@ func PublishToClient(messageJSON []byte) {
 		"client_key",     // Routing key (matches queue binding)
 		true,             // Mandatory (don't fail if no queue bound)
 		false,            // Immediate (don't wait for ack)
-		amqp091.Publishing{
+		amqp.Publishing{
 			ContentType: "application/json",
 			Body:        messageJSON,
 		},

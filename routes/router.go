@@ -13,6 +13,7 @@ func SetupRouter(r *gin.Engine) {
 	r.GET("/chatDetail", controllers.GetChatDetail)
 	r.GET("/participant", controllers.GetChatGroupParticipantData)
 	r.POST("/messages", rabbitmq.PublishToDatabase)
+	r.GET("/download", controllers.DownloadFile)
 
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(200, gin.H{

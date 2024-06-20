@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"instant-messenger-backend/configs"
 
-	"github.com/rabbitmq/amqp091-go"
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 func ConnectToRabbitMQ() error {
 	fmt.Println("Try to connect to RabbitMQ!")
-	conn, err := amqp091.Dial(configs.EnvRabbitMQURI())
+	conn, err := amqp.Dial(configs.EnvRabbitMQURI())
 	if err != nil {
 		fmt.Println(err)
 		return err

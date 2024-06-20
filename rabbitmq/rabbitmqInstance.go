@@ -1,6 +1,6 @@
 package rabbitmq
 
-import "github.com/rabbitmq/amqp091-go"
+import amqp "github.com/rabbitmq/amqp091-go"
 
-var rabbitMQ *amqp091.Connection
-var rabbitMQChannel *amqp091.Channel
+var rabbitMQ *amqp.Connection
+var rabbitMQChannel *amqp.Channel
