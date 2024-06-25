@@ -86,8 +86,8 @@ func PublishToDatabase(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"error":    false,
-		"messages": "Message send successfully, try to saving to database",
-		"status":   "pending",
+		"messages": "Message send successfully, saving to database. Sending Message to Client...",
+		"status":   "sending",
 	})
 }
 
