@@ -4,6 +4,7 @@ import (
 	"instant-messenger-backend/database"
 	"instant-messenger-backend/rabbitmq"
 	"instant-messenger-backend/routes"
+	"instant-messenger-backend/utils"
 	"instant-messenger-backend/websocket"
 
 	"github.com/gin-gonic/gin"
@@ -11,6 +12,7 @@ import (
 
 func main() {
 	r := gin.New()
+	r.Use(utils.CORSMiddleware())
 	database.ConnectDB()
 	go websocket.InitGorillaWebsocket()
 	rabbitmq.ConnectToRabbitMQ()
