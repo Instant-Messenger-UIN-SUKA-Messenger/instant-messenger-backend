@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-    
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
@@ -15,10 +15,28 @@ import (
 
 func SaveMessageToDatabase(messageJSON []byte) (bool, error) {
 	// Decode JSON message
-	var message models.Message
-	err := json.Unmarshal(messageJSON, &message)
+	var rawMessage models.Message
+	err := json.Unmarshal(messageJSON, &rawMessage)
 	if err != nil {
 		return false, fmt.Errorf("error unmarshalling message: %w", err)
+	}
+
+	// get senderName based userId
+	var user models.User
+	err = userCollections.FindOne(context.TODO(), bson.M{"nim": rawMessage.SenderID}).Decode(&user)
+
+	if err != nil {
+		log.Printf("Error finding user: %v", err)
+	}
+
+	var message = models.Message{
+		ID:          rawMessage.ID,
+		ChatID:      rawMessage.ChatID,
+		SenderID:    rawMessage.SenderID,
+		SenderName:  user.Name,
+		Content:     rawMessage.Content,
+		SentAt:      rawMessage.SentAt,
+		Attachments: rawMessage.Attachments,
 	}
 
 	// Generate a new ObjectID
