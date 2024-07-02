@@ -32,139 +32,103 @@ func NewServer() *Server {
 }
 
 func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
-
 	conn, err := s.upgrader.Upgrade(w, r, nil)
-
 	if err != nil {
-
 		log.Println(err)
-
 		return
-
 	}
-
 	defer conn.Close()
 
-	// Baca pesan pertama dari klien untuk mendapatkan ID pengguna
-
+	// Read initial message to get ChatID
 	_, msg, err := conn.ReadMessage()
-
 	if err != nil {
-
 		log.Println("Error reading user ID:", err)
-
 		return
-
 	}
 
-	var chatID struct {
+	var ChatID struct {
 		ID string `json:"id"`
 	}
-
-	if err := json.Unmarshal(msg, &chatID); err != nil {
-
+	if err := json.Unmarshal(msg, &ChatID); err != nil {
 		log.Println("Error decoding user ID:", err)
-
 		return
-
 	}
-
-	// Tambahkan koneksi ke dalam map conns dengan ID pengguna yang unik
 
 	s.connsMu.Lock()
-
-	connID := fmt.Sprintf("%s-%d", chatID.ID, s.nextID)
-
+	connID := fmt.Sprintf("%s-%d", ChatID.ID, s.nextID)
 	s.nextID++
-
-	if _, exists := s.conns[chatID.ID]; !exists {
-
-		s.conns[chatID.ID] = make([]*websocket.Conn, 0)
-
+	if _, exists := s.conns[ChatID.ID]; !exists {
+		s.conns[ChatID.ID] = make([]*websocket.Conn, 0)
 	}
-
-	s.conns[chatID.ID] = append(s.conns[chatID.ID], conn)
-
+	s.conns[ChatID.ID] = append(s.conns[ChatID.ID], conn)
 	s.connsMu.Unlock()
-
-	// Kirim ID koneksi ke klien
 
 	conn.WriteMessage(websocket.TextMessage, []byte(connID))
 
 	for {
-
 		_, msg, err := conn.ReadMessage()
-
 		if err != nil {
-
 			log.Println(err)
-
-			// Hapus koneksi dari map saat koneksi tertutup atau ada error
-
 			s.connsMu.Lock()
-
-			for i, c := range s.conns[chatID.ID] {
-
+			for i, c := range s.conns[ChatID.ID] {
 				if c == conn {
-
-					s.conns[chatID.ID] = append(s.conns[chatID.ID][:i], s.conns[chatID.ID][i+1:]...)
-
+					s.conns[ChatID.ID] = append(s.conns[ChatID.ID][:i], s.conns[ChatID.ID][i+1:]...)
 					break
-
 				}
-
 			}
-
-			if len(s.conns[chatID.ID]) == 0 {
-
-				delete(s.conns, chatID.ID)
-
+			if len(s.conns[ChatID.ID]) == 0 {
+				delete(s.conns, ChatID.ID)
 			}
-
 			s.connsMu.Unlock()
-
 			return
-
 		}
 
 		var clientMsg models.Message
-
 		if err := json.Unmarshal(msg, &clientMsg); err != nil {
-
 			log.Println("Error decoding message:", err)
-
 			continue
-
 		}
 
-		// Kirim pesan hanya ke koneksi tujuan
-
-		s.connsMu.Lock()
-
-		found := false
-
-		for _, destConn := range s.conns[clientMsg.ChatID] {
-
-			destConn.WriteMessage(websocket.TextMessage, []byte(clientMsg.Content))
-
-			// Kirim respons ke klien bahwa pesan berhasil dikirim
-
-			conn.WriteMessage(websocket.TextMessage, []byte("Pesan berhasil dikirim"))
-
-			found = true
-
+		var readReceipt models.Readed
+		if err := json.Unmarshal(msg, &readReceipt); err != nil {
+			log.Println("Error decoding read receipt:", err)
+			continue
 		}
 
-		s.connsMu.Unlock()
-
-		if !found {
-
-			conn.WriteMessage(websocket.TextMessage, []byte("orangnya tidak ada"))
-
+		if readReceipt.Read {
+			log.Printf("Received read receipt from client: %+v", readReceipt)
+			// Handle read receipt
+			s.handleReadReceipt(readReceipt, conn)
+		} else {
+			// Handle normal message
+			s.handleMessage(clientMsg, conn)
 		}
+	}
+}
 
+func (s *Server) handleMessage(clientMsg models.Message, conn *websocket.Conn) {
+	s.connsMu.Lock()
+	defer s.connsMu.Unlock()
+
+	found := false
+	for _, destConn := range s.conns[clientMsg.ChatID] {
+		destConn.WriteMessage(websocket.TextMessage, []byte(clientMsg.Content))
+		conn.WriteMessage(websocket.TextMessage, []byte("Pesan berhasil dikirim"))
+		found = true
 	}
 
+	if !found {
+		conn.WriteMessage(websocket.TextMessage, []byte("orangnya tidak ada"))
+	}
+}
+
+func (s *Server) handleReadReceipt(readReceipt models.Readed, _ *websocket.Conn) {
+	s.connsMu.Lock()
+	defer s.connsMu.Unlock()
+
+	for _, destConn := range s.conns[readReceipt.ChatID] {
+		destConn.WriteMessage(websocket.TextMessage, []byte("Pesan telah dibaca"))
+	}
 }
 
 func (s *Server) getConnectionInfo() []InfoConnection {
