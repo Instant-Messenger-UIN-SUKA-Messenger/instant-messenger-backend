@@ -18,6 +18,7 @@
       margin: 5px 0;
       padding: 5px;
       border-bottom: 1px solid #eee;
+      cursor: pointer;
     }
     .message-sender {
       font-weight: bold;
@@ -50,7 +51,7 @@
       document.getElementById('status').textContent = "Connected";
 
       // Send user ID after connection is open
-      const chatID = { id: "chat 1" }; // Replace with appropriate user ID
+      const chatID = { id: "chat1" }; // Replace with appropriate user ID
       ws.send(JSON.stringify(chatID));
     };
 
@@ -58,9 +59,22 @@
       console.log("Received:", event.data);
 
       try {
-        // Parse received data as JSON
-        const message = JSON.parse(event.data);
-        console.log("Received JSON message:", message); // Log to confirm JSON parsing
+        const data = JSON.parse(event.data);
+
+        // Check if the received data is a read receipt
+        if (data.read !== undefined) {
+          const readReceiptElem = document.createElement('div');
+          readReceiptElem.classList.add('message');
+          readReceiptElem.textContent = `Message has been read in chat ${data.chatId}`;
+          const messagesDiv = document.getElementById('messages');
+          messagesDiv.appendChild(readReceiptElem);
+          messagesDiv.scrollTop = messagesDiv.scrollHeight;
+          return;
+        }
+
+        // Handle normal messages
+        const message = data;
+        console.log("Received JSON message:", message);
 
         // Create a new element for the message
         const messageElem = document.createElement('div');
@@ -85,6 +99,12 @@
         timestampElem.textContent = ` (${sentAt})`;
         messageElem.appendChild(timestampElem);
 
+        // Add click event listener to the message element
+        messageElem.addEventListener('click', () => {
+          sendReadReceipt(message.chatId);
+          messageElem.style.fontWeight = 'normal'; // Example: change style when clicked
+        });
+
         // Append the message element to the container
         const messagesDiv = document.getElementById('messages');
         messagesDiv.appendChild(messageElem);
@@ -103,6 +123,16 @@
       console.log("WebSocket connection closed");
       document.getElementById('status').textContent = "Disconnected";
     };
+
+    function sendReadReceipt(chatID) {
+      const readReceipt = {
+        chatId: chatID,
+        read: true,
+      };
+
+    
+      ws.send(JSON.stringify(readReceipt));
+    }
   </script>
 </body>
 </html>
