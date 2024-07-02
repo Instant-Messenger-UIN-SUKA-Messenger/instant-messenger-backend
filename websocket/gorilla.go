@@ -164,8 +164,7 @@ func (s *Server) SendChatToClient(message []byte) (bool, error) {
 	var clientMsg models.Message
 	if err := json.Unmarshal(message, &clientMsg); err != nil {
 		log.Println("Error decoding message:", err)
-		// d.Nack(false, true) // Nack message if decoding fails
-		// continue
+
 	}
 
 	s.connsMu.Lock()
