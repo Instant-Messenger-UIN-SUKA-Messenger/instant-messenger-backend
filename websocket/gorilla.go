@@ -57,11 +57,11 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	var userID struct {
+	var chatID struct {
 		ID string `json:"id"`
 	}
 
-	if err := json.Unmarshal(msg, &userID); err != nil {
+	if err := json.Unmarshal(msg, &chatID); err != nil {
 
 		log.Println("Error decoding user ID:", err)
 
@@ -73,17 +73,17 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	s.connsMu.Lock()
 
-	connID := fmt.Sprintf("%s-%d", userID.ID, s.nextID)
+	connID := fmt.Sprintf("%s-%d", chatID.ID, s.nextID)
 
 	s.nextID++
 
-	if _, exists := s.conns[userID.ID]; !exists {
+	if _, exists := s.conns[chatID.ID]; !exists {
 
-		s.conns[userID.ID] = make([]*websocket.Conn, 0)
+		s.conns[chatID.ID] = make([]*websocket.Conn, 0)
 
 	}
 
-	s.conns[userID.ID] = append(s.conns[userID.ID], conn)
+	s.conns[chatID.ID] = append(s.conns[chatID.ID], conn)
 
 	s.connsMu.Unlock()
 
@@ -103,11 +103,11 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 			s.connsMu.Lock()
 
-			for i, c := range s.conns[userID.ID] {
+			for i, c := range s.conns[chatID.ID] {
 
 				if c == conn {
 
-					s.conns[userID.ID] = append(s.conns[userID.ID][:i], s.conns[userID.ID][i+1:]...)
+					s.conns[chatID.ID] = append(s.conns[chatID.ID][:i], s.conns[chatID.ID][i+1:]...)
 
 					break
 
@@ -115,9 +115,9 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 			}
 
-			if len(s.conns[userID.ID]) == 0 {
+			if len(s.conns[chatID.ID]) == 0 {
 
-				delete(s.conns, userID.ID)
+				delete(s.conns, chatID.ID)
 
 			}
 
