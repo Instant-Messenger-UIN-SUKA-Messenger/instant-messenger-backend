@@ -107,8 +107,9 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			s.handleReadReceipt(readReceipt, conn)
 		} else if deliveredReceipt.Delivered {
 			log.Printf("Received delivered receipt from client: %+v", deliveredReceipt)
-			// Handle delivered receipt
-			s.handleDeliveredReceipt(deliveredReceipt, conn)
+			// Handle delivered receipt and get the ChatID
+			chatID := s.handleDeliveredReceipt(deliveredReceipt, conn)
+			log.Printf("Delivered receipt processed for ChatID: %s", chatID)
 		} else {
 			s.handleMessage(clientMsg, conn)
 		}
@@ -140,16 +141,17 @@ func (s *Server) handleReadReceipt(readReceipt models.Readed, _ *websocket.Conn)
 	}
 }
 
-func (s *Server) handleDeliveredReceipt(deliveredReceipt models.Delivered, _ *websocket.Conn) {
+func (s *Server) handleDeliveredReceipt(deliveredReceipt models.Delivered, _ *websocket.Conn) string {
 	s.connsMu.Lock()
 	defer s.connsMu.Unlock()
 
 	for _, destConn := range s.conns[deliveredReceipt.ChatID] {
-		destConn.WriteMessage(websocket.TextMessage, []byte("Pesan telah terkirim"))
+		message := fmt.Sprintf(deliveredReceipt.ChatID)
+		destConn.WriteMessage(websocket.TextMessage, []byte(message))
 	}
 
+	return deliveredReceipt.ChatID
 }
-
 func (s *Server) getConnectionInfo() []InfoConnection {
 	s.connsMu.Lock()
 	defer s.connsMu.Unlock()
