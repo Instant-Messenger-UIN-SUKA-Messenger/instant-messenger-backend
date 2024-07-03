@@ -25,7 +25,7 @@ type Server struct {
 
 func NewServer() *Server {
 	return &Server{
-		conns:    make(map[string][]*websocket.Conn), // Ubah inisialisasi map ini
+		conns:    make(map[string][]*websocket.Conn),
 		nextID:   1,
 		upgrader: websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }},
 	}
@@ -83,6 +83,12 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		var deliveredReceipt models.Delivered
+		if err := json.Unmarshal(msg, &deliveredReceipt); err != nil {
+			log.Println("Error decoding delivered receipt:", err)
+			continue
+		}
+
 		var clientMsg models.Message
 		if err := json.Unmarshal(msg, &clientMsg); err != nil {
 			log.Println("Error decoding message:", err)
@@ -99,8 +105,11 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			log.Printf("Received read receipt from client: %+v", readReceipt)
 			// Handle read receipt
 			s.handleReadReceipt(readReceipt, conn)
+		} else if deliveredReceipt.Delivered {
+			log.Printf("Received delivered receipt from client: %+v", deliveredReceipt)
+			// Handle delivered receipt
+			s.handleDeliveredReceipt(deliveredReceipt, conn)
 		} else {
-			// Handle normal message
 			s.handleMessage(clientMsg, conn)
 		}
 	}
@@ -129,6 +138,16 @@ func (s *Server) handleReadReceipt(readReceipt models.Readed, _ *websocket.Conn)
 	for _, destConn := range s.conns[readReceipt.ChatID] {
 		destConn.WriteMessage(websocket.TextMessage, []byte("Pesan telah dibaca"))
 	}
+}
+
+func (s *Server) handleDeliveredReceipt(deliveredReceipt models.Delivered, _ *websocket.Conn) {
+	s.connsMu.Lock()
+	defer s.connsMu.Unlock()
+
+	for _, destConn := range s.conns[deliveredReceipt.ChatID] {
+		destConn.WriteMessage(websocket.TextMessage, []byte("Pesan telah terkirim"))
+	}
+
 }
 
 func (s *Server) getConnectionInfo() []InfoConnection {
